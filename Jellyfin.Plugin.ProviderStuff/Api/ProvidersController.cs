@@ -57,7 +57,7 @@ public class ProvidersController : ControllerBase
             .Select(p =>
             {
                 string collectionId = string.Empty;
-                if (p.CreateCollection)
+                if (cfg.EnableProviderCollections && p.CreateCollection)
                 {
                     IReadOnlyList<BaseItem> items = _libraryManager.GetItemList(new InternalItemsQuery
                     {

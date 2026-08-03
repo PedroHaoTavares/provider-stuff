@@ -55,7 +55,7 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
     /// <summary>
     /// Gets Description of the task.
     /// </summary>
-    public string Description => "Fetch providers from TMDB and apply provider:<name> tags to items with TMDB IDs.";
+    public string Description => "Apply provider:<name> tags and synchronize optional provider collections.";
 
     /// <summary>
     /// Gets Category of the task.
@@ -107,10 +107,14 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
             return;
         }
 
-        // Pre-create and cache collections for providers that enable it
-        var providersNeedingCollections = cfg.Providers.Where(p => p.CreateCollection).ToArray();
-        var collectionIdsByProvider = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
-        var pendingAddsByCollection = new Dictionary<Guid, HashSet<Guid>>();
+        // Pre-create and cache collections for providers that enable it.
+        var providersNeedingCollections = cfg.EnableProviderCollections
+            ? cfg.Providers
+                .Where(p => p.CreateCollection && !string.IsNullOrWhiteSpace(p.Name))
+                .DistinctBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ToArray()
+            : Array.Empty<Provider>();
+        var collectionsByProvider = new Dictionary<string, BoxSet>(StringComparer.OrdinalIgnoreCase);
         if (providersNeedingCollections.Length > 0)
         {
             _logger.LogInformation("Preparing collections for {Count} providers", providersNeedingCollections.Length);
@@ -126,8 +130,7 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
 
                 if (collections.Count > 0 && collections[0] is BoxSet existing)
                 {
-                    collectionIdsByProvider[provider.Name] = existing.Id;
-                    pendingAddsByCollection[existing.Id] = new HashSet<Guid>();
+                    collectionsByProvider[provider.Name] = existing;
 
                     // Ensure the collection has a primary image if configured
                     try
@@ -142,8 +145,7 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
                 else
                 {
                     var boxSet = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions { Name = collectionName }).ConfigureAwait(false);
-                    collectionIdsByProvider[provider.Name] = boxSet.Id;
-                    pendingAddsByCollection[boxSet.Id] = new HashSet<Guid>();
+                    collectionsByProvider[provider.Name] = boxSet;
                     _logger.LogInformation("Created collection '{Collection}'", collectionName);
                     boxSet.PremiereDate = DateTime.UtcNow;
                     await _libraryManager.UpdateItemAsync(boxSet, boxSet, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
@@ -174,7 +176,7 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                await ProcessItemAsync(item, cfg, collectionIdsByProvider, pendingAddsByCollection, cancellationToken).ConfigureAwait(false);
+                await ProcessItemAsync(item, cfg, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -191,29 +193,11 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
             }
         }
 
-        // Batch add accumulated items to their collections
-        if (pendingAddsByCollection.Count > 0)
-        {
-            foreach (var kvp in pendingAddsByCollection)
-            {
-                var collectionId = kvp.Key;
-                var itemIds = kvp.Value;
-                if (itemIds.Count == 0)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    await _collectionManager.AddToCollectionAsync(collectionId, itemIds).ConfigureAwait(false);
-                    _logger.LogInformation("Added {Count} items to collection {CollectionId}", itemIds.Count, collectionId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to batch add items to collection {CollectionId}", collectionId);
-                }
-            }
-        }
+        await SyncProviderCollectionsAsync(
+            providersNeedingCollections,
+            collectionsByProvider,
+            items,
+            cancellationToken).ConfigureAwait(false);
     }
 
     private async Task EnsureCollectionImageAsync(BoxSet collection, Provider provider, CancellationToken ct)
@@ -264,7 +248,7 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
         }
     }
 
-    private async Task ProcessItemAsync(BaseItem item, PluginConfiguration cfg, Dictionary<string, Guid> collectionIdsByProvider, Dictionary<Guid, HashSet<Guid>> pendingAddsByCollection, CancellationToken ct)
+    private async Task ProcessItemAsync(BaseItem item, PluginConfiguration cfg, CancellationToken ct)
     {
         string? tmdbId = null;
         if (item.ProviderIds is not null)
@@ -300,16 +284,11 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
         var matched = new List<string>();
         foreach (var p in cfg.Providers)
         {
-            if (p.ProviderIds?.Length > 0 && providerIds.Intersect(p.ProviderIds).Any())
+            if (!string.IsNullOrWhiteSpace(p.Name)
+                && p.ProviderIds?.Length > 0
+                && providerIds.Intersect(p.ProviderIds).Any())
             {
                 matched.Add(p.Name);
-                if (p.CreateCollection && collectionIdsByProvider.TryGetValue(p.Name, out var collectionId))
-                {
-                    if (pendingAddsByCollection.TryGetValue(collectionId, out var set))
-                    {
-                        set.Add(item.Id);
-                    }
-                }
             }
         }
 
@@ -338,5 +317,50 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
         }
     }
 
-    // removed per-item collection lookup helper; collections are prepared up-front in ExecuteAsync
+    private async Task SyncProviderCollectionsAsync(
+        IReadOnlyList<Provider> providers,
+        Dictionary<string, BoxSet> collectionsByProvider,
+        IReadOnlyList<BaseItem> libraryItems,
+        CancellationToken cancellationToken)
+    {
+        foreach (var provider in providers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!collectionsByProvider.TryGetValue(provider.Name, out var collection))
+            {
+                continue;
+            }
+
+            try
+            {
+                var desiredItemIds = libraryItems
+                    .Where(item => ProviderCollectionPlanner.IsProviderCollectionItem(item, provider.Name))
+                    .Select(item => item.Id);
+                var currentItemIds = collection.GetLinkedChildren().Select(item => item.Id);
+                var plan = ProviderCollectionPlanner.CreateSyncPlan(desiredItemIds, currentItemIds);
+
+                if (plan.ItemIdsToAdd.Count > 0)
+                {
+                    await _collectionManager.AddToCollectionAsync(collection.Id, plan.ItemIdsToAdd).ConfigureAwait(false);
+                    _logger.LogInformation(
+                        "Added {Count} items to provider collection {Collection}",
+                        plan.ItemIdsToAdd.Count,
+                        provider.Name);
+                }
+
+                if (plan.ItemIdsToRemove.Count > 0)
+                {
+                    await _collectionManager.RemoveFromCollectionAsync(collection.Id, plan.ItemIdsToRemove).ConfigureAwait(false);
+                    _logger.LogInformation(
+                        "Removed {Count} items from provider collection {Collection}",
+                        plan.ItemIdsToRemove.Count,
+                        provider.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to synchronize provider collection {Collection}", provider.Name);
+            }
+        }
+    }
 }

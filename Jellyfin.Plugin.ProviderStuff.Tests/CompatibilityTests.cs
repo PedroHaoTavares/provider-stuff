@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Jellyfin.Plugin.ProviderStuff;
+using Jellyfin.Plugin.ProviderStuff.Configuration;
 using Jellyfin.Plugin.ProviderStuff.ScheduledTasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
@@ -26,6 +26,12 @@ public class CompatibilityTests
 
         Assert.Equal(Guid.Parse("2be7759b-4e1b-4965-94ad-37d80c84b506"), plugin.Id);
         Assert.Contains(plugin.Id.ToString(), configurationPage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProviderCollectionsAreEnabledByDefault()
+    {
+        Assert.True(new PluginConfiguration().EnableProviderCollections);
     }
 
     [Fact]

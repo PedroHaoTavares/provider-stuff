@@ -25,6 +25,16 @@
                         <input id="TmdbCountry" name="TmdbCountry" type="text" is="emby-input" maxlength="2" />
                         <div class="fieldDescription">Two-letter country code (e.g. US, DE).</div>
                     </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="EnableProviderCollections" type="checkbox" is="emby-checkbox" />
+                            <span>Create and synchronize provider collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Shows enabled providers as Netflix, Prime Video, Disney+ and similar entries inside Jellyfin Collections.
+                            Disabling this option keeps provider tags and does not delete existing collections.
+                        </div>
+                    </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="Providers">Providers</label>
                         <div id="ProvidersEditor" style="margin-bottom:8px"></div>
@@ -310,6 +320,7 @@
                     ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
                         document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
                         document.querySelector('#TmdbCountry').value = config.TmdbCountry || '';
+                        document.querySelector('#EnableProviderCollections').checked = config.EnableProviderCollections !== false;
                         // Providers is a Collection on the server; pass it through to the renderer which normalizes shapes
                         console.log('Current config providers: ', config.Providers);
                         renderProvidersList(config.Providers || []);
@@ -340,6 +351,7 @@
                 ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
                     config.TmdbApiKey = document.querySelector('#TmdbApiKey').value || '';
                     config.TmdbCountry = document.querySelector('#TmdbCountry').value || '';
+                    config.EnableProviderCollections = !!document.querySelector('#EnableProviderCollections').checked;
                     // Collect providers from UI
                     try {
                         var uiProviders = collectProvidersFromUI();

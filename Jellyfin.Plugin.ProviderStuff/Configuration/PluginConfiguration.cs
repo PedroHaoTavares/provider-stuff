@@ -22,6 +22,11 @@ public class PluginConfiguration : BasePluginConfiguration
     public string TmdbCountry { get; set; } = "DE";
 
     /// <summary>
+    /// Gets or sets a value indicating whether provider collections are created and synchronized.
+    /// </summary>
+    public bool EnableProviderCollections { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets List of providers.
     /// </summary>
     [SuppressMessage(category: "Performance", checkId: "CA1819", Target = "ArtworkRepos", Justification = "Xml Serializer doesn't support IReadOnlyList")]

@@ -1,121 +1,194 @@
-# ProviderStuff para Jellyfin 10.11
+# ProviderStuff para Jellyfin
 
-Fork independente do ProviderStuff, preparado para Jellyfin 10.11.x.
+ProviderStuff identifica em quais serviços de streaming cada filme ou série está
+disponível, aplica tags como `provider:Netflix` e, opcionalmente, cria coleções
+nativas chamadas **Netflix**, **Prime Video**, **Disney+**, **Max** e outros
+provedores configurados.
 
-- Versão inicial: `1.2.1.0`
-- `targetAbi`: `10.11.0.0`
-- Framework: `.NET 9` (`net9.0`)
-- GUID do fork: `2be7759b-4e1b-4965-94ad-37d80c84b506`
-- Repositório: `PedroHaoTavares/provider-stuff`
+A versão `1.3.0.0` foi desenvolvida para o Jellyfin Server `10.11.10`, usa
+`.NET 9` e mantém o comportamento existente de criação de tags.
 
-## URL do repositório no Jellyfin
+## O que o plugin faz
 
-Depois que a primeira Release terminar com sucesso, adicione esta URL em
-**Painel → Plugins → Repositórios**:
+- Consulta os provedores de filmes, séries e episódios usando o TMDB.
+- Aplica uma tag `provider:<nome>` para cada provedor correspondente.
+- Cria uma coleção nativa do Jellyfin para cada provedor habilitado.
+- Mantém nessas coleções apenas filmes e séries que possuam a tag do provedor.
+- Adiciona novos itens e remove membros que já não correspondem à coleção.
+- Usa a imagem configurada do provedor como capa, sem substituir uma capa
+  existente.
+- Expõe uma API autenticada para consultar provedores e seus itens.
+
+O plugin não move, copia ou duplica mídias, não cria links para arquivos e não
+altera diretamente o banco de dados do Jellyfin. As coleções armazenam apenas
+referências aos itens que já existem na biblioteca.
+
+## Como a navegação por provedores aparece
+
+Cada provedor é representado por uma coleção padrão do Jellyfin:
+
+```text
+Coleções
+├── Netflix
+├── Prime Video
+├── Disney+
+└── Max
+```
+
+Ao abrir **Netflix**, por exemplo, são exibidos os filmes e séries que possuem
+a tag `provider:Netflix`.
+
+Esta implementação usa `BoxSet`, o modelo público e nativo de coleções do
+Jellyfin. Por isso, ela pode ser navegada pelos clientes que já suportam
+coleções, incluindo Jellyfin Web, Android TV, WebOS e Roku, sem endpoint ou
+interface personalizada no cliente.
+
+> Os provedores aparecem dentro da área **Coleções**. O plugin não transforma
+> Netflix, Prime Video ou Disney+ em bibliotecas independentes na linha
+> **Minha mídia**, porque plugins de servidor não podem adicionar com segurança
+> novos atalhos de biblioteca a todos esses clientes. Fazer isso exigiria
+> alterações específicas em cada cliente.
+
+## Instalação pelo catálogo
+
+No Jellyfin, abra **Painel → Plugins → Repositórios**, adicione:
 
 ```text
 https://raw.githubusercontent.com/PedroHaoTavares/provider-stuff/main/manifest.json
 ```
 
-Em seguida, abra o Catálogo, instale **ProviderStuff** e reinicie o Jellyfin.
+Depois:
 
-## Publicar no GitHub
+1. Abra o **Catálogo** de plugins.
+2. Instale **ProviderStuff**.
+3. Reinicie o servidor Jellyfin.
 
-### 1. Colocar estes arquivos no fork
+Requisitos:
 
-Copie todo o conteúdo deste pacote para a raiz do clone de:
+- Jellyfin Server `10.11.10`;
+- uma chave de API do TMDB;
+- acesso do servidor Jellyfin à API e às imagens do TMDB.
 
-```text
-https://github.com/PedroHaoTavares/provider-stuff
-```
+## Configuração
 
-Envie os arquivos para a branch `main`. Este pacote não altera o GitHub
-automaticamente.
+Abra **Painel → Plugins → ProviderStuff**.
 
-> A pasta local usada para criar este pacote ainda apontava para o repositório
-> original `kamilkosek/jellyfin-plugin-provider-stuff`. Confirme o endereço do
-> remoto antes de qualquer envio para evitar publicar no lugar errado.
+### Configurações globais
 
-### 2. Dar permissão de escrita à Action
+- **TMDB API Key:** chave usada para consultar os provedores.
+- **TMDB Country:** região da disponibilidade, como `BR`, `US` ou `DE`.
+- **Create and synchronize provider collections:** ativa ou desativa a criação
+  e sincronização de todas as coleções de provedores.
 
-No GitHub, abra:
+Desativar a opção global:
 
-**Settings → Actions → General → Workflow permissions**
+- não interrompe a criação das tags `provider:<nome>`;
+- não apaga coleções já existentes;
+- impede que o plugin crie ou sincronize coleções enquanto estiver desativada.
 
-Selecione:
+### Configuração de cada provedor
 
-```text
-Read and write permissions
-```
+Para cada entrada, configure:
 
-Salve. A Action precisa dessa permissão para atualizar o `manifest.json`, criar
-a tag e publicar a Release.
+- **Name:** nome exibido e usado na tag, como `Netflix`;
+- **TMDB Providers:** um ou mais IDs do TMDB associados à entrada;
+- **Logo URL:** imagem opcional para a capa da coleção;
+- **Create collection for this provider:** ativa a coleção somente para aquele
+  provedor.
 
-### 3. Executar a Release
+As opções global e individual precisam estar habilitadas para que a coleção
+seja criada e sincronizada.
 
-No GitHub:
+### Exemplo
 
-1. Abra **Actions**.
-2. Escolha **Release ProviderStuff**.
-3. Clique em **Run workflow**.
-4. Selecione a branch `main`.
-5. Use:
-   - `version`: `1.2.1.0`
-   - `target_abi`: `10.11.0.0`
-6. Confirme em **Run workflow**.
-
-A Action:
-
-1. restaura as dependências;
-2. executa os testes;
-3. compila o plugin em Release;
-4. gera `providerstuff-1.2.1.0.zip` contendo somente
-   `Jellyfin.Plugin.ProviderStuff.dll`;
-5. calcula o MD5 do ZIP;
-6. atualiza `version`, `targetAbi`, `sourceUrl`, `checksum` e `timestamp` no
-   `manifest.json`;
-7. envia o manifesto atualizado para `main`;
-8. cria a tag `1.2.1.0`;
-9. publica a GitHub Release com o ZIP.
-
-Não crie antes uma tag ou Release chamada `1.2.1.0`; o workflow faz isso.
-
-### 4. Conferir a publicação
-
-Ao final, estas URLs devem funcionar:
+Para agrupar diferentes opções do TMDB em uma única entrada:
 
 ```text
-Manifest:
-https://raw.githubusercontent.com/PedroHaoTavares/provider-stuff/main/manifest.json
-
-Release:
-https://github.com/PedroHaoTavares/provider-stuff/releases/tag/1.2.1.0
-
-Download:
-https://github.com/PedroHaoTavares/provider-stuff/releases/download/1.2.1.0/providerstuff-1.2.1.0.zip
+Name: Prime Video
+TMDB Providers: Amazon Prime Video, Amazon Video
+Create collection for this provider: ativado
 ```
 
-O `checksum` do catálogo é o MD5 do arquivo ZIP, em hexadecimal minúsculo com
-32 caracteres. Ele é recalculado em cada Release.
+Os IDs selecionados são tratados como o mesmo provedor configurado e produzem a
+tag `provider:Prime Video` e a coleção **Prime Video**.
 
-## Atualizações futuras
+## Executando a tarefa
 
-Execute novamente o mesmo workflow com uma versão nova, por exemplo
-`1.2.1.1`. O script mantém versões anteriores no catálogo e coloca a nova no
-topo. Tags já publicadas não são sobrescritas.
+Abra **Painel → Tarefas agendadas** e execute:
 
-## Instalação limpa
+```text
+ProviderStuff: Apply provider tags
+```
 
-Como este fork usa um GUID próprio, remova a instalação manual anterior antes
-de instalar pelo catálogo. Pare o Jellyfin, remova apenas a pasta antiga do
-ProviderStuff, inicie o servidor e faça a instalação pelo Catálogo.
+Por padrão, a tarefa também é executada diariamente às 03:00. Em cada execução,
+o plugin:
 
-## Desenvolvimento local
+1. consulta filmes, séries e episódios existentes;
+2. consulta os provedores disponíveis no país configurado;
+3. adiciona as tags correspondentes;
+4. cria ou localiza as coleções habilitadas;
+5. sincroniza filmes e séries com cada coleção.
+
+Episódios recebem tags, preservando o comportamento anterior, mas não são
+adicionados individualmente às coleções. A série correspondente é o item
+navegável.
+
+## API
+
+Todos os endpoints exigem autenticação normal do Jellyfin.
+
+### Listar provedores
+
+```http
+GET /providerstuff/providers
+```
+
+Retorna o nome, IDs do TMDB, URL do logo, opção de coleção e, quando disponível,
+o `collectionId`.
+
+### Listar itens de um provedor
+
+```http
+GET /providerstuff/{providerName}/items
+```
+
+Parâmetros opcionais:
+
+- `userId`: usuário usado para gerar os DTOs;
+- `includeItemTypes`: `Movie`, `Series` ou `Episode`;
+- `startIndex`: índice inicial;
+- `limit`: quantidade máxima de resultados.
+
+Exemplos:
+
+```http
+GET /providerstuff/Netflix/items?limit=50&startIndex=0
+GET /providerstuff/Prime%20Video/items?includeItemTypes=Movie
+```
+
+O retorno é um `QueryResult<BaseItemDto>` paginado.
+
+## Atualização a partir de uma instalação antiga
+
+Este fork usa o GUID:
+
+```text
+2be7759b-4e1b-4965-94ad-37d80c84b506
+```
+
+Se houver uma cópia manual ou outra variante do ProviderStuff instalada,
+remova somente a instalação antiga antes de instalar este fork pelo catálogo.
+Não mantenha duas variantes do plugin carregadas ao mesmo tempo.
+
+Após atualizar para `1.3.0.0`, revise a nova opção global de coleções e execute
+a tarefa manualmente uma vez.
+
+## Desenvolvimento
 
 Pré-requisitos:
 
-- .NET SDK 9
-- Python 3, somente para atualizar o catálogo localmente
+- .NET SDK 9;
+- Python 3 para atualizar o manifesto de release.
 
 Comandos principais:
 
@@ -125,29 +198,13 @@ dotnet test Jellyfin.Plugin.ProviderStuff.Tests/Jellyfin.Plugin.ProviderStuff.Te
 dotnet publish Jellyfin.Plugin.ProviderStuff/Jellyfin.Plugin.ProviderStuff.csproj --configuration Release
 ```
 
-O script `scripts/update_manifest.py` valida que o ZIP contém exclusivamente a
-DLL esperada antes de calcular o MD5 e alterar o catálogo.
-
-Este pacote também inclui em `release/` um ZIP local já validado. A Action
-sempre recompila a DLL e gera um novo ZIP para a publicação oficial; portanto,
-o MD5 pode mudar e será atualizado automaticamente.
-
-## Estrutura de publicação
+O artefato instalável é um arquivo
+`providerstuff-<versão>.zip` contendo somente:
 
 ```text
-.github/workflows/release.yml
-    Compila, testa, empacota, atualiza o catálogo e publica a Release.
-
-scripts/update_manifest.py
-    Valida o ZIP, calcula MD5 e atualiza manifest.json.
-
-manifest.json
-    Catálogo adicionado ao Gerenciador de Repositórios do Jellyfin.
-
-release/
-    Diretório temporário usado pela Action para o ZIP final.
+Jellyfin.Plugin.ProviderStuff.dll
 ```
 
 ## Licença
 
-GPL-3.0. Consulte `LICENSE`.
+Distribuído sob a licença GPL-3.0. Consulte [LICENSE](LICENSE).
