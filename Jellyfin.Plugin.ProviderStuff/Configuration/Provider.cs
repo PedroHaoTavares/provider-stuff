@@ -27,6 +27,26 @@ public class Provider
     public string ProviderLogoUrl { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the display name of the provider collection.
+    /// </summary>
+    public string CollectionName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the stable Jellyfin collection identifier.
+    /// </summary>
+    public Guid CollectionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the configured collection name should be applied.
+    /// </summary>
+    public bool UpdateCollectionName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the configured collection image should be applied.
+    /// </summary>
+    public bool UpdateCollectionImage { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether to create a collection for this provider.
     /// </summary>
     public bool CreateCollection { get; set; } = false;

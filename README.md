@@ -5,7 +5,7 @@ disponível, aplica tags como `provider:Netflix` e, opcionalmente, cria coleçõ
 nativas chamadas **Netflix**, **Prime Video**, **Disney+**, **Max** e outros
 provedores configurados.
 
-A versão `1.3.0.0` foi desenvolvida para o Jellyfin Server `10.11.10`, usa
+A versão `1.3.1.0` foi desenvolvida para o Jellyfin Server `10.11.10`, usa
 `.NET 9` e mantém o comportamento existente de criação de tags.
 
 ## O que o plugin faz
@@ -71,7 +71,8 @@ Requisitos:
 
 ## Configuração
 
-Abra **Painel → Plugins → ProviderStuff**.
+Abra **Painel → ProviderStuff** no menu lateral. A página também permanece
+disponível em **Painel → Plugins → ProviderStuff**.
 
 ### Configurações globais
 
@@ -92,12 +93,19 @@ Para cada entrada, configure:
 
 - **Name:** nome exibido e usado na tag, como `Netflix`;
 - **TMDB Providers:** um ou mais IDs do TMDB associados à entrada;
-- **Logo URL:** imagem opcional para a capa da coleção;
+- **Nome exibido da coleção:** título independente da tag, como `Minha Netflix`;
+- **URL da imagem da coleção:** imagem opcional para a capa;
 - **Create collection for this provider:** ativa a coleção somente para aquele
   provedor.
 
 As opções global e individual precisam estar habilitadas para que a coleção
 seja criada e sincronizada.
+
+O plugin guarda o identificador interno da coleção. Depois da primeira
+sincronização, renomear a coleção ou editar sua imagem diretamente no Jellyfin
+não faz o plugin criar outra coleção. Alterações feitas nos campos de nome ou
+imagem da página do ProviderStuff são aplicadas uma vez na próxima execução da
+tarefa, sem sobrescrever continuamente personalizações posteriores.
 
 ### Exemplo
 
@@ -180,7 +188,7 @@ Se houver uma cópia manual ou outra variante do ProviderStuff instalada,
 remova somente a instalação antiga antes de instalar este fork pelo catálogo.
 Não mantenha duas variantes do plugin carregadas ao mesmo tempo.
 
-Após atualizar para `1.3.0.0`, revise a nova opção global de coleções e execute
+Após atualizar para `1.3.1.0`, revise a opção global de coleções e execute
 a tarefa manualmente uma vez.
 
 ## Desenvolvimento

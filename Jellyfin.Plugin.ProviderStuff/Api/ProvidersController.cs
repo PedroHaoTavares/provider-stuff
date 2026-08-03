@@ -59,13 +59,22 @@ public class ProvidersController : ControllerBase
                 string collectionId = string.Empty;
                 if (cfg.EnableProviderCollections && p.CreateCollection)
                 {
-                    IReadOnlyList<BaseItem> items = _libraryManager.GetItemList(new InternalItemsQuery
+                    var existing = p.CollectionId == Guid.Empty
+                        ? null
+                        : _libraryManager.GetItemById(p.CollectionId) as MediaBrowser.Controller.Entities.Movies.BoxSet;
+                    if (existing is null)
                     {
-                        IncludeItemTypes = new[] { BaseItemKind.BoxSet },
-                        Name = p.Name,
-                        Recursive = true
-                    });
-                    var existing = items.Count > 0 ? items[0] : null;
+                        IReadOnlyList<BaseItem> items = _libraryManager.GetItemList(new InternalItemsQuery
+                        {
+                            IncludeItemTypes = new[] { BaseItemKind.BoxSet },
+                            Name = ProviderCollectionPlanner.GetCollectionName(p),
+                            Recursive = true
+                        });
+                        existing = items.Count > 0
+                            ? items[0] as MediaBrowser.Controller.Entities.Movies.BoxSet
+                            : null;
+                    }
+
                     if (existing is not null)
                     {
                         collectionId = existing.Id.ToString();

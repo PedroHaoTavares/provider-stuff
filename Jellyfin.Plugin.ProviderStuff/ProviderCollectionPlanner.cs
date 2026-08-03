@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jellyfin.Plugin.ProviderStuff.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -12,6 +13,18 @@ namespace Jellyfin.Plugin.ProviderStuff;
 /// </summary>
 public static class ProviderCollectionPlanner
 {
+    /// <summary>
+    /// Gets the configured collection name, falling back to the provider/tag name.
+    /// </summary>
+    /// <param name="provider">Provider configuration.</param>
+    /// <returns>The normalized collection name.</returns>
+    public static string GetCollectionName(Provider provider)
+    {
+        return string.IsNullOrWhiteSpace(provider.CollectionName)
+            ? provider.Name.Trim()
+            : provider.CollectionName.Trim();
+    }
+
     /// <summary>
     /// Determines whether an item should appear in a provider collection.
     /// </summary>

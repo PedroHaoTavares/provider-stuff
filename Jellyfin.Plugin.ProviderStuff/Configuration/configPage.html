@@ -1,434 +1,658 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <title>ProviderStuff</title>
     <style>
-        .provider-row img { vertical-align:middle; margin-right:6px; }
-        /* Slightly larger than a checkbox but not by much */
-        .provider-thumb { width:18px; height:18px; object-fit:contain; margin-left:4px; margin-right:8px; }
+        .providerStuffPage .content-primary {
+            max-width: 72rem;
+        }
+
+        .providerStuffPage .providerStuffIntro {
+            margin-bottom: 2rem;
+        }
+
+        .providerStuffPage .providerStuffSection,
+        .providerStuffPage .providerCard {
+            border: .08em solid rgba(128, 128, 128, .45);
+            border-radius: .5rem;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            background: rgba(128, 128, 128, .08);
+        }
+
+        .providerStuffPage .providerCard {
+            min-width: 0;
+        }
+
+        .providerStuffPage .providerCard legend {
+            padding: 0 .4rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .providerStuffPage .providerGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+            gap: 1rem;
+        }
+
+        .providerStuffPage .providerInput {
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .providerStuffPage .providerActions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .75rem;
+            margin: 1rem 0;
+        }
+
+        .providerStuffPage .providerSelector {
+            margin: 1rem 0;
+        }
+
+        .providerStuffPage .providerSelector summary {
+            cursor: pointer;
+            font-weight: 600;
+            padding: .5rem 0;
+        }
+
+        .providerStuffPage .providerOptions {
+            max-height: 18rem;
+            overflow: auto;
+            border: .08em solid rgba(128, 128, 128, .45);
+            border-radius: .35rem;
+            padding: .5rem;
+            margin-top: .5rem;
+        }
+
+        .providerStuffPage .providerOption {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            min-height: 2.5rem;
+            padding: .25rem .4rem;
+            border-radius: .25rem;
+        }
+
+        .providerStuffPage .providerOption:hover,
+        .providerStuffPage .providerOption:focus-within {
+            background: rgba(128, 128, 128, .18);
+        }
+
+        .providerStuffPage .providerThumb {
+            width: 2rem;
+            height: 2rem;
+            flex: 0 0 2rem;
+            object-fit: contain;
+            border-radius: .2rem;
+        }
+
+        .providerStuffPage .collectionHelp {
+            border-left: .25rem solid #00a4dc;
+            padding: .75rem 1rem;
+            margin: 1rem 0;
+            background: rgba(0, 164, 220, .09);
+        }
+
+        .providerStuffPage .providerEmpty {
+            padding: 1rem;
+            text-align: center;
+            opacity: .8;
+        }
+
+        .providerStuffPage .providerStatus {
+            min-height: 1.5rem;
+            margin: .75rem 0;
+        }
+
+        .providerStuffPage input:focus-visible,
+        .providerStuffPage button:focus-visible,
+        .providerStuffPage summary:focus-visible {
+            outline: .2rem solid #00a4dc;
+            outline-offset: .15rem;
+        }
+
+        @media (max-width: 40rem) {
+            .providerStuffPage .providerStuffSection,
+            .providerStuffPage .providerCard {
+                padding: 1rem;
+            }
+
+            .providerStuffPage .providerGrid {
+                grid-template-columns: 1fr;
+            }
+
+            .providerStuffPage .providerActions > button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div id="ProviderStuffConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="ProviderStuffConfigPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage providerStuffPage"
+         data-require="emby-input,emby-button,emby-checkbox">
         <div data-role="content">
             <div class="content-primary">
-                <form id="ProviderStuffConfigForm">
+                <header class="providerStuffIntro">
+                    <h1>ProviderStuff</h1>
+                    <p>
+                        Aplique tags de provedores e mantenha coleções como Netflix,
+                        Prime Video, Disney+ e Max sincronizadas.
+                    </p>
+                </header>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">TMDB API Key</label>
-                        <input id="TmdbApiKey" name="TmdbApiKey" type="text" is="emby-input" />
-                        <div class="fieldDescription">API key used to access TMDB services.</div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="TmdbCountry">TMDB Country Code</label>
-                        <input id="TmdbCountry" name="TmdbCountry" type="text" is="emby-input" maxlength="2" />
-                        <div class="fieldDescription">Two-letter country code (e.g. US, DE).</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="EnableProviderCollections" type="checkbox" is="emby-checkbox" />
-                            <span>Create and synchronize provider collections</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Shows enabled providers as Netflix, Prime Video, Disney+ and similar entries inside Jellyfin Collections.
-                            Disabling this option keeps provider tags and does not delete existing collections.
+                <form id="ProviderStuffConfigForm">
+                    <section class="providerStuffSection" aria-labelledby="providerStuffGeneralHeading">
+                        <h2 id="providerStuffGeneralHeading">TMDB e sincronização</h2>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="TmdbApiKey">Chave da API do TMDB</label>
+                            <input id="TmdbApiKey"
+                                   name="TmdbApiKey"
+                                   type="password"
+                                   is="emby-input"
+                                   autocomplete="off"
+                                   aria-describedby="TmdbApiKeyHelp">
+                            <div id="TmdbApiKeyHelp" class="fieldDescription">
+                                Usada somente para consultar a disponibilidade dos provedores no TMDB.
+                            </div>
                         </div>
-                    </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="Providers">Providers</label>
-                        <div id="ProvidersEditor" style="margin-bottom:8px"></div>
-                        <div style="margin-bottom:8px">
-                            <button id="AddProviderBtn" is="emby-button" type="button" class="emby-button">Add provider</button>
-                            <button id="RefreshTmdbBtn" is="emby-button" type="button" class="emby-button">Refresh TMDB providers</button>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="TmdbCountry">País do TMDB</label>
+                            <input id="TmdbCountry"
+                                   name="TmdbCountry"
+                                   type="text"
+                                   is="emby-input"
+                                   maxlength="2"
+                                   inputmode="text"
+                                   aria-describedby="TmdbCountryHelp">
+                            <div id="TmdbCountryHelp" class="fieldDescription">
+                                Código de duas letras, como BR, US ou DE.
+                            </div>
                         </div>
-                        <div class="fieldDescription">Manage providers: name, assigned TMDB provider IDs, logo URL and whether to create a collection.</div>
-                    </div>
-                    <div>
-                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-                            <span>Save</span>
-                        </button>
-                    </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label class="emby-checkbox-label">
+                                <input id="EnableProviderCollections" type="checkbox" is="emby-checkbox">
+                                <span>Criar e sincronizar coleções de provedores</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                Desativar mantém as tags e não exclui coleções existentes.
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="providerStuffSection" aria-labelledby="providerStuffProvidersHeading">
+                        <h2 id="providerStuffProvidersHeading">Provedores</h2>
+                        <div class="collectionHelp">
+                            <strong>Onde editar:</strong> o cartão “Coleções” da tela inicial pertence ao Jellyfin.
+                            O nome e a imagem configurados abaixo são aplicados à coleção do provedor na próxima
+                            execução da tarefa. Alterações feitas diretamente nessa coleção pelo Jellyfin também
+                            serão preservadas.
+                        </div>
+
+                        <div id="ProvidersEditor" aria-live="polite"></div>
+
+                        <div class="providerActions">
+                            <button id="AddProviderBtn"
+                                    is="emby-button"
+                                    type="button"
+                                    class="raised emby-button">
+                                Adicionar provedor
+                            </button>
+                            <button id="RefreshTmdbBtn"
+                                    is="emby-button"
+                                    type="button"
+                                    class="raised emby-button">
+                                Atualizar lista do TMDB
+                            </button>
+                        </div>
+                    </section>
+
+                    <div id="ProviderStuffStatus" class="providerStatus" role="status" aria-live="polite"></div>
+
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Salvar configurações</span>
+                    </button>
                 </form>
             </div>
         </div>
+
         <script type="text/javascript">
-            var TemplateConfig = {
-                pluginUniqueId: '2be7759b-4e1b-4965-94ad-37d80c84b506'
-            };
+            (function () {
+                'use strict';
 
-            // TMDB provider cache
-            var tmdbProviders = []; // array of {provider_id, provider_name, logo_path}
+                var pluginId = '2be7759b-4e1b-4965-94ad-37d80c84b506';
+                var emptyGuid = '00000000-0000-0000-0000-000000000000';
+                var tmdbProviders = [];
+                var providerRowCounter = 0;
 
-            function fetchTmdbProviders(apiKey, region) {
-                region = region || 'US';
-                if (!apiKey) return Promise.reject(new Error('No TMDB API key'));
-                var endpoints = [
-                    'https://api.themoviedb.org/3/watch/providers/movie',
-                    'https://api.themoviedb.org/3/watch/providers/tv'
-                ];
+                function setStatus(message) {
+                    document.querySelector('#ProviderStuffStatus').textContent = message || '';
+                }
 
-                var promises = endpoints.map(function(ep) {
-                    var url = ep + '?api_key=' + encodeURIComponent(apiKey) + '&language=en-US&watch_region=' + encodeURIComponent(region);
-                    return fetch(url).then(function (res) {
-                        if (!res.ok) throw new Error('TMDB fetch failed: ' + res.status + ' for ' + ep);
-                        return res.json();
-                    }).then(function (data) {
-                        return (data && data.results) ? data.results : [];
-                    });
-                });
-
-                return Promise.all(promises).then(function(resultsArrays) {
-                    // flatten
-                    var combined = [].concat.apply([], resultsArrays || []);
-                    // dedupe by provider_id
-                    var map = {};
-                    combined.forEach(function(p) {
-                        if (!p || !p.provider_id) return;
-                        var id = p.provider_id;
-                        if (!map[id]) {
-                            map[id] = { provider_id: id, provider_name: p.provider_name, logo_path: p.logo_path || '' };
-                        } else {
-                            // if name missing, prefer existing; if logo missing, take any
-                            if (!map[id].provider_name && p.provider_name) map[id].provider_name = p.provider_name;
-                            if (!map[id].logo_path && p.logo_path) map[id].logo_path = p.logo_path;
-                        }
-                    });
-                    tmdbProviders = Object.keys(map).map(function(k){ return map[k]; });
-                    tmdbProviders.sort(function(a,b){ return a.provider_name.localeCompare(b.provider_name); });
-                    return tmdbProviders;
-                });
-            }
-
-            function createProviderRow(provider, index) {
-                // provider: { Name, ProviderIds (array), ProviderLogoUrl, CreateCollection }
-                var container = document.createElement('div');
-                container.className = 'provider-row';
-                container.style = 'border:1px solid #ddd; padding:8px; margin-bottom:8px;';
-
-                var nameLabel = document.createElement('label');
-                nameLabel.textContent = 'Name';
-                nameLabel.style = 'display:block; font-weight:600;';
-                var nameInput = document.createElement('input');
-                nameInput.type = 'text';
-                nameInput.value = provider.Name || '';
-                nameInput.style = 'width:100%; margin-bottom:6px;';
-
-                var idsLabel = document.createElement('label');
-                idsLabel.textContent = 'TMDB Providers (search & check one or more)';
-                idsLabel.style = 'display:block; font-weight:600;';
-
-                // search box for filtering providers
-                var idsSearch = document.createElement('input');
-                idsSearch.type = 'search';
-                idsSearch.placeholder = 'Search providers...';
-                idsSearch.style = 'width:100%; margin-bottom:6px; padding:4px;';
-
-                var idsList = document.createElement('div');
-                idsList.style = 'max-height:180px; overflow:auto; border:1px solid #eee; padding:6px; margin-bottom:6px;';
-
-                // populate options from tmdbProviders into a checkbox list with thumbnails
-                function populateOptions() {
-                    idsList.innerHTML = '';
-                    var existing = (provider.ProviderIds || []).map(function(v){ return String(v); });
-
-                    // helper: convert TMDB logo_path to full URL if needed
-                    function logoUrl(p) {
-                        if (!p || !p.logo_path) return '';
-                        return p.logo_path.indexOf('http') === 0 ? p.logo_path : ('https://image.tmdb.org/t/p/original' + p.logo_path);
+                function normalizeIds(provider) {
+                    var ids = provider && provider.ProviderIds;
+                    if (Array.isArray(ids)) {
+                        return ids.map(Number).filter(Number.isFinite);
                     }
 
-                    // Render checkboxes with thumbnail images
-                    tmdbProviders.forEach(function (p) {
-                        var idStr = String(p.provider_id);
-                        var row = document.createElement('div');
-                        row.style = 'display:flex; align-items:center; padding:2px 0;';
-                        var chk = document.createElement('input');
-                        chk.type = 'checkbox';
-                        chk.value = idStr;
-                        chk.id = 'prov_' + idStr + '_' + Math.random().toString(36).substr(2,5);
-                        if (existing.indexOf(idStr) !== -1) chk.checked = true;
-
-                        var img = document.createElement('img');
-                        // ensure class is applied even in environments that may not respect className
-                        img.setAttribute('class', 'provider-thumb');
-                        img.setAttribute('alt', (p.provider_name || '') + ' logo');
-                        img.setAttribute('role', 'img');
-                        var _logo = logoUrl(p) || '';
-                        if (_logo) {
-                            img.src = _logo;
-                        } else {
-                            img.src = '';
-                            img.style.display = 'none';
-                        }
-                        // Inline fallback sizing in case CSS isn't loaded/applied
-                        img.style.width = img.style.width || '18px';
-                        img.style.height = img.style.height || '18px';
-                        img.style.objectFit = img.style.objectFit || 'contain';
-                        img.style.marginLeft = img.style.marginLeft || '4px';
-                        img.style.marginRight = img.style.marginRight || '8px';
-
-                        var lbl = document.createElement('label');
-                        lbl.htmlFor = chk.id;
-                        lbl.style = 'margin-left:6px;';
-                        lbl.textContent = p.provider_name + ' (' + idStr + ')';
-
-                        row.appendChild(chk);
-                        if (img.src) row.appendChild(img);
-                        row.appendChild(lbl);
-                        idsList.appendChild(row);
-
-                        // checkbox change: auto-fill logoInput from the first selected provider when empty
-                        chk.addEventListener('change', function () {
-                            try {
-                                if (chk.checked && !logoInput.value) {
-                                    var url = logoUrl(p);
-                                    if (url) logoInput.value = url;
-                                }
-                            } catch (e) { /* ignore */ }
-                        });
-                    });
-
-                    // If there are existing selected providers and logoInput is empty, prefill from the first existing
-                    try {
-                        if (!logoInput.value && existing.length) {
-                            var firstId = existing[0];
-                            var found = tmdbProviders.filter(function(x){ return String(x.provider_id) === String(firstId); })[0];
-                            if (found && found.logo_path) logoInput.value = logoUrl(found);
-                        }
-                    } catch (e) { /* ignore */ }
-
-                    // wire up search filter
-                    idsSearch.oninput = function () {
-                        var q = idsSearch.value.trim().toLowerCase();
-                        Array.prototype.slice.call(idsList.children).forEach(function(r){
-                            var text = (r.textContent || '').toLowerCase();
-                            r.style.display = text.indexOf(q) !== -1 ? '' : 'none';
-                        });
-                    };
-                }
-
-                var logoLabel = document.createElement('label');
-                logoLabel.textContent = 'Logo URL';
-                logoLabel.style = 'display:block; font-weight:600;';
-                var logoInput = document.createElement('input');
-                logoInput.type = 'text';
-                logoInput.value = provider.ProviderLogoUrl || '';
-                logoInput.style = 'width:100%; margin-bottom:6px;';
-
-                var createLabel = document.createElement('label');
-                createLabel.style = 'display:block; margin-bottom:6px;';
-                var createCheckbox = document.createElement('input');
-                createCheckbox.type = 'checkbox';
-                createCheckbox.checked = !!provider.CreateCollection;
-                createCheckbox.style = 'margin-right:6px;';
-                createLabel.appendChild(createCheckbox);
-                createLabel.appendChild(document.createTextNode('Create collection for this provider'));
-
-                var btnRemove = document.createElement('button');
-                btnRemove.type = 'button';
-                btnRemove.className = 'emby-button';
-                btnRemove.textContent = 'Remove';
-                btnRemove.style = 'margin-top:6px;'
-                btnRemove.addEventListener('click', function () {
-                    container.parentNode.removeChild(container);
-                });
-
-                container.appendChild(nameLabel);
-                container.appendChild(nameInput);
-                container.appendChild(idsLabel);
-                container.appendChild(idsSearch);
-                container.appendChild(idsList);
-                container.appendChild(logoLabel);
-                container.appendChild(logoInput);
-                container.appendChild(createLabel);
-                container.appendChild(btnRemove);
-
-                // expose helper to repopulate options later
-                container.populateOptions = populateOptions;
-                container.getValues = function () {
-                    var checked = Array.prototype.slice.call(idsList.querySelectorAll('input[type=checkbox]:checked')).map(function(o){ return parseInt(o.value,10); }).filter(function(n){ return !isNaN(n); });
-                    return {
-                        Name: nameInput.value || '',
-                        ProviderIds: checked,
-                        ProviderLogoUrl: logoInput.value || '',
-                        CreateCollection: !!createCheckbox.checked
-                    };
-                };
-
-                return container;
-            }
-
-            function renderProvidersList(providers) {
-                var editor = document.querySelector('#ProvidersEditor');
-                editor.innerHTML = '';
-                providers = providers || [];
-                // helper to normalize ProviderIds shape from server
-                function normalizeIds(p) {
-                    if (!p) return [];
-                    var ids = p.ProviderIds;
-                    if (Array.isArray(ids)) return ids.map(function(n){ return parseInt(n,10); }).filter(function(n){ return !isNaN(n); });
-                    if (!ids) return [];
-                    // handle object shapes: { '0': 123, '1': 456 } or { Items: [1,2,3] }
-                    if (Array.isArray(ids.Items)) return ids.Items.map(function(n){ return parseInt(n,10); }).filter(function(n){ return !isNaN(n); });
-                    try {
-                        var vals = Object.keys(ids).map(function(k){ return ids[k]; });
-                        return vals.map(function(n){ return parseInt(n,10); }).filter(function(n){ return !isNaN(n); });
-                    } catch (e) { return []; }
-                }
-                providers.forEach(function (p, idx) {
-                    // ensure ProviderIds is a plain array for the UI
-                    var safe = {
-                        Name: p.Name || '',
-                        ProviderIds: normalizeIds(p),
-                        ProviderLogoUrl: p.ProviderLogoUrl || '',
-                        CreateCollection: !!p.CreateCollection
-                    };
-                    var row = createProviderRow(safe, idx);
-                    editor.appendChild(row);
-                });
-                // if tmdbProviders already loaded, populate options
-                Array.prototype.slice.call(editor.children).forEach(function(ch) {
-                    if (typeof ch.populateOptions === 'function') ch.populateOptions();
-                });
-            }
-
-            function collectProvidersFromUI() {
-                var editor = document.querySelector('#ProvidersEditor');
-                var rows = Array.prototype.slice.call(editor.children);
-                return rows.map(function (r) {
-                    if (typeof r.getValues === 'function') return r.getValues();
-                    return null;
-                }).filter(function(x){ return x !== null; });
-            }
-
-            function addEmptyProviderRow() {
-                var editor = document.querySelector('#ProvidersEditor');
-                console.log('[addEmptyProviderRow] Adding empty provider row, editor: ', editor);
-
-                var row = createProviderRow({ Name: '', ProviderIds: [], ProviderLogoUrl: '', CreateCollection: false });
-                editor.appendChild(row);
-                if (tmdbProviders.length) row.populateOptions();
-                // scroll into view
-                row.scrollIntoView({behavior:'smooth', block:'center'});
-            }
-
-            document.querySelector('#ProviderStuffConfigPage')
-                .addEventListener('pageshow', function() {
-                    console.log('Loading configuration...');
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
-                        document.querySelector('#TmdbCountry').value = config.TmdbCountry || '';
-                        document.querySelector('#EnableProviderCollections').checked = config.EnableProviderCollections !== false;
-                        // Providers is a Collection on the server; pass it through to the renderer which normalizes shapes
-                        console.log('Current config providers: ', config.Providers);
-                        renderProvidersList(config.Providers || []);
-
-                        // If we have a TMDB API key, fetch providers to populate selects
-                        var key = config.TmdbApiKey || document.querySelector('#TmdbApiKey').value;
-                        if (key) {
-                            fetchTmdbProviders(key, config.TmdbCountry || document.querySelector('#TmdbCountry').value || 'US')
-                                .then(function() {
-                                    // populate select options in each provider row
-                                    var editor = document.querySelector('#ProvidersEditor');
-                                    Array.prototype.slice.call(editor.children).forEach(function(ch) {
-                                        if (typeof ch.populateOptions === 'function') ch.populateOptions();
-                                    });
-                                }).catch(function(err){
-                                    console.warn('TMDB fetch failed', err);
-                                });
-                        }
-                        Dashboard.hideLoadingMsg();
-                    });
-                });
-
-            document.querySelector('#ProviderStuffConfigForm')
-                .addEventListener('submit', function(e) {
-                e.preventDefault();
-                Dashboard.showLoadingMsg();
-                console.log('Saving configuration...');
-                ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                    config.TmdbApiKey = document.querySelector('#TmdbApiKey').value || '';
-                    config.TmdbCountry = document.querySelector('#TmdbCountry').value || '';
-                    config.EnableProviderCollections = !!document.querySelector('#EnableProviderCollections').checked;
-                    // Collect providers from UI
-                    try {
-                        var uiProviders = collectProvidersFromUI();
-                        console.log('Collected providers from UI: ', uiProviders);
-                        // normalize ProviderIds to Collection<int> like structure (array is fine over JSON)
-                        var providers = uiProviders.map(function(p) {
-                            return {
-                                Name: p.Name || '',
-                                ProviderIds: Array.isArray(p.ProviderIds) ? p.ProviderIds : [],
-                                ProviderLogoUrl: p.ProviderLogoUrl || '',
-                                CreateCollection: !!p.CreateCollection
-                            };
-                        });
-                        console.log('Normalized providers for config: ', providers);
-                        config.Providers = providers;
-                    } catch (err) {
-                        Dashboard.hideLoadingMsg();
-                        Dashboard.alert('Failed to collect providers: ' + err.message);
-                        return false;
+                    if (ids && Array.isArray(ids.Items)) {
+                        return ids.Items.map(Number).filter(Number.isFinite);
                     }
 
-                    ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
-                });
+                    if (!ids || typeof ids !== 'object') {
+                        return [];
+                    }
 
-                return false;
-            });
-
-            // Add provider button - bind robustly because Jellyfin pages may already exist
-            function bindProviderButtons() {
-                var addBtn = document.querySelector('#AddProviderBtn');
-                var refreshBtn = document.querySelector('#RefreshTmdbBtn');
-                if (addBtn) {
-                    // remove previous listeners by cloning
-                    var newAdd = addBtn.cloneNode(true);
-                    addBtn.parentNode.replaceChild(newAdd, addBtn);
-                    newAdd.addEventListener('click', function () { addEmptyProviderRow(); });
-                    console.log('AddProviderBtn bound');
+                    return Object.keys(ids).map(function (key) {
+                        return Number(ids[key]);
+                    }).filter(Number.isFinite);
                 }
-                if (refreshBtn) {
-                    var newRefresh = refreshBtn.cloneNode(true);
-                    refreshBtn.parentNode.replaceChild(newRefresh, refreshBtn);
-                    newRefresh.addEventListener('click', function () {
-                        var key = document.querySelector('#TmdbApiKey').value || '';
-                        var region = document.querySelector('#TmdbCountry').value || 'US';
-                        console.log('Refreshing TMDB providers with key:', key, ' region:', region);
-                        if (!key) {
-                            Dashboard.alert('Error: No TMDB API key, cannot refresh');
-                            return;
+
+                function getLogoUrl(provider) {
+                    if (!provider || !provider.logo_path) {
+                        return '';
+                    }
+
+                    return provider.logo_path.indexOf('http') === 0
+                        ? provider.logo_path
+                        : 'https://image.tmdb.org/t/p/w92' + provider.logo_path;
+                }
+
+                function fetchTmdbProviders(apiKey, region) {
+                    if (!apiKey) {
+                        return Promise.reject(new Error('Informe uma chave da API do TMDB.'));
+                    }
+
+                    var endpoints = [
+                        'https://api.themoviedb.org/3/watch/providers/movie',
+                        'https://api.themoviedb.org/3/watch/providers/tv'
+                    ];
+                    var requests = endpoints.map(function (endpoint) {
+                        var url = endpoint
+                            + '?api_key=' + encodeURIComponent(apiKey)
+                            + '&language=pt-BR'
+                            + '&watch_region=' + encodeURIComponent(region || 'BR');
+                        return fetch(url).then(function (response) {
+                            if (!response.ok) {
+                                throw new Error('O TMDB respondeu com o código ' + response.status + '.');
+                            }
+
+                            return response.json();
+                        }).then(function (data) {
+                            return data && data.results ? data.results : [];
+                        });
+                    });
+
+                    return Promise.all(requests).then(function (results) {
+                        var providersById = {};
+                        [].concat.apply([], results).forEach(function (provider) {
+                            if (!provider || !provider.provider_id) {
+                                return;
+                            }
+
+                            var current = providersById[provider.provider_id];
+                            if (!current) {
+                                providersById[provider.provider_id] = provider;
+                            } else if (!current.logo_path && provider.logo_path) {
+                                current.logo_path = provider.logo_path;
+                            }
+                        });
+
+                        tmdbProviders = Object.keys(providersById).map(function (key) {
+                            return providersById[key];
+                        }).sort(function (left, right) {
+                            return left.provider_name.localeCompare(right.provider_name);
+                        });
+
+                        return tmdbProviders;
+                    });
+                }
+
+                function createInput(id, value, descriptionId) {
+                    var input = document.createElement('input');
+                    input.id = id;
+                    input.type = 'text';
+                    input.className = 'emby-input providerInput';
+                    input.value = value || '';
+                    if (descriptionId) {
+                        input.setAttribute('aria-describedby', descriptionId);
+                    }
+
+                    return input;
+                }
+
+                function appendInput(container, id, labelText, value, helpText) {
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'inputContainer';
+                    var label = document.createElement('label');
+                    label.className = 'inputLabel inputLabelUnfocused';
+                    label.htmlFor = id;
+                    label.textContent = labelText;
+                    var helpId = id + 'Help';
+                    var input = createInput(id, value, helpId);
+                    var help = document.createElement('div');
+                    help.id = helpId;
+                    help.className = 'fieldDescription';
+                    help.textContent = helpText;
+                    wrapper.appendChild(label);
+                    wrapper.appendChild(input);
+                    wrapper.appendChild(help);
+                    container.appendChild(wrapper);
+                    return input;
+                }
+
+                function renderTmdbOptions(list, search, selectedIds, logoInput) {
+                    list.innerHTML = '';
+                    if (!tmdbProviders.length) {
+                        var empty = document.createElement('p');
+                        empty.className = 'providerEmpty';
+                        empty.textContent = 'Atualize a lista do TMDB para selecionar provedores.';
+                        list.appendChild(empty);
+                        return;
+                    }
+
+                    tmdbProviders.forEach(function (provider) {
+                        var providerId = String(provider.provider_id);
+                        var row = document.createElement('label');
+                        row.className = 'providerOption';
+                        row.dataset.searchText = (provider.provider_name + ' ' + providerId).toLowerCase();
+
+                        var checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = providerId;
+                        checkbox.checked = selectedIds.indexOf(providerId) !== -1;
+                        checkbox.addEventListener('change', function () {
+                            if (checkbox.checked && !logoInput.value) {
+                                logoInput.value = getLogoUrl(provider);
+                                logoInput.dispatchEvent(new Event('input'));
+                            }
+                        });
+
+                        var logo = document.createElement('img');
+                        logo.className = 'providerThumb';
+                        logo.alt = '';
+                        logo.loading = 'lazy';
+                        logo.src = getLogoUrl(provider);
+                        if (!logo.src) {
+                            logo.hidden = true;
                         }
-                        Dashboard.showLoadingMsg();
-                        fetchTmdbProviders(key, region).then(function () {
-                            // repopulate options
-                            var editor = document.querySelector('#ProvidersEditor');
-                            Array.prototype.slice.call(editor.children).forEach(function(ch) {
-                                if (typeof ch.populateOptions === 'function') ch.populateOptions();
+
+                        var text = document.createElement('span');
+                        text.textContent = provider.provider_name + ' (' + providerId + ')';
+
+                        row.appendChild(checkbox);
+                        row.appendChild(logo);
+                        row.appendChild(text);
+                        list.appendChild(row);
+                    });
+
+                    search.oninput = function () {
+                        var query = search.value.trim().toLowerCase();
+                        Array.prototype.forEach.call(list.querySelectorAll('.providerOption'), function (row) {
+                            row.hidden = row.dataset.searchText.indexOf(query) === -1;
+                        });
+                    };
+                }
+
+                function createProviderRow(sourceProvider) {
+                    providerRowCounter += 1;
+                    var rowId = 'provider-' + providerRowCounter;
+                    var provider = sourceProvider || {};
+                    var initialCollectionName = provider.CollectionName || provider.Name || '';
+                    var initialLogoUrl = provider.ProviderLogoUrl || '';
+                    var selectedIds = normalizeIds(provider).map(String);
+
+                    var fieldset = document.createElement('fieldset');
+                    fieldset.className = 'providerCard';
+                    var legend = document.createElement('legend');
+                    legend.textContent = provider.Name || 'Novo provedor';
+                    fieldset.appendChild(legend);
+
+                    var grid = document.createElement('div');
+                    grid.className = 'providerGrid';
+                    var nameInput = appendInput(
+                        grid,
+                        rowId + '-name',
+                        'Nome do provedor e da tag',
+                        provider.Name,
+                        'Exemplo: Netflix. A tag será provider:Netflix.');
+                    var collectionNameInput = appendInput(
+                        grid,
+                        rowId + '-collection-name',
+                        'Nome exibido da coleção',
+                        initialCollectionName,
+                        'Pode ser diferente da tag. A alteração será aplicada na próxima execução da tarefa.');
+                    fieldset.appendChild(grid);
+
+                    nameInput.addEventListener('input', function () {
+                        legend.textContent = nameInput.value.trim() || 'Novo provedor';
+                        if (!collectionNameInput.value.trim()) {
+                            collectionNameInput.value = nameInput.value;
+                        }
+                    });
+
+                    var selector = document.createElement('details');
+                    selector.className = 'providerSelector';
+                    var selectorSummary = document.createElement('summary');
+                    selectorSummary.textContent = 'Selecionar IDs de provedores do TMDB';
+                    var searchLabel = document.createElement('label');
+                    searchLabel.className = 'inputLabel inputLabelUnfocused';
+                    searchLabel.htmlFor = rowId + '-search';
+                    searchLabel.textContent = 'Filtrar provedores';
+                    var search = createInput(rowId + '-search', '', rowId + '-providers');
+                    search.type = 'search';
+                    search.placeholder = 'Digite um nome, como Netflix';
+                    var options = document.createElement('div');
+                    options.id = rowId + '-providers';
+                    options.className = 'providerOptions';
+                    options.setAttribute('role', 'group');
+                    options.setAttribute('aria-label', 'Provedores disponíveis no TMDB');
+                    selector.appendChild(selectorSummary);
+                    selector.appendChild(searchLabel);
+                    selector.appendChild(search);
+                    selector.appendChild(options);
+                    fieldset.appendChild(selector);
+
+                    var logoInput = appendInput(
+                        fieldset,
+                        rowId + '-logo',
+                        'URL da imagem da coleção',
+                        initialLogoUrl,
+                        'Alterar ou limpar este campo atualiza a imagem na próxima execução da tarefa.');
+
+                    var checkboxContainer = document.createElement('div');
+                    checkboxContainer.className = 'checkboxContainer checkboxContainer-withDescription';
+                    var checkboxLabel = document.createElement('label');
+                    checkboxLabel.className = 'emby-checkbox-label';
+                    var createCollection = document.createElement('input');
+                    createCollection.type = 'checkbox';
+                    createCollection.checked = !!provider.CreateCollection;
+                    createCollection.setAttribute('is', 'emby-checkbox');
+                    var checkboxText = document.createElement('span');
+                    checkboxText.textContent = 'Criar e sincronizar coleção para este provedor';
+                    checkboxLabel.appendChild(createCollection);
+                    checkboxLabel.appendChild(checkboxText);
+                    checkboxContainer.appendChild(checkboxLabel);
+                    fieldset.appendChild(checkboxContainer);
+
+                    var actions = document.createElement('div');
+                    actions.className = 'providerActions';
+                    var removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'raised button-delete emby-button';
+                    removeButton.textContent = 'Remover provedor';
+                    removeButton.setAttribute('aria-label', 'Remover ' + (provider.Name || 'novo provedor'));
+                    removeButton.addEventListener('click', function () {
+                        fieldset.remove();
+                        if (!document.querySelector('#ProvidersEditor').children.length) {
+                            renderEmptyState();
+                        }
+                    });
+                    actions.appendChild(removeButton);
+                    fieldset.appendChild(actions);
+
+                    fieldset.populateOptions = function () {
+                        selectedIds = Array.prototype.map.call(
+                            options.querySelectorAll('input[type="checkbox"]:checked'),
+                            function (checkbox) {
+                                return checkbox.value;
                             });
-                            Dashboard.hideLoadingMsg();
-                            Dashboard.alert('TMDB providers list refreshed');
-                            console.log('TMDB providers refreshed');
-                        }).catch(function (err) {
-                            Dashboard.hideLoadingMsg();
-                            console.log('Failed to fetch TMDB providers: ', err);
-                            Dashboard.title('Failed to fetch TMDB providers: ' + err.message);
-                        });
-                    });
-                    console.log('RefreshTmdbBtn bound');
+                        renderTmdbOptions(options, search, selectedIds, logoInput);
+                    };
+
+                    fieldset.getValues = function () {
+                        var currentCollectionName = collectionNameInput.value.trim();
+                        var currentLogoUrl = logoInput.value.trim();
+                        return {
+                            Name: nameInput.value.trim(),
+                            ProviderIds: Array.prototype.map.call(
+                                options.querySelectorAll('input[type="checkbox"]:checked'),
+                                function (checkbox) {
+                                    return Number(checkbox.value);
+                                }),
+                            ProviderLogoUrl: currentLogoUrl,
+                            CollectionName: currentCollectionName,
+                            CollectionId: provider.CollectionId || emptyGuid,
+                            UpdateCollectionName: !!provider.UpdateCollectionName
+                                || currentCollectionName !== initialCollectionName,
+                            UpdateCollectionImage: !!provider.UpdateCollectionImage
+                                || currentLogoUrl !== initialLogoUrl,
+                            CreateCollection: createCollection.checked
+                        };
+                    };
+
+                    renderTmdbOptions(options, search, selectedIds, logoInput);
+                    return fieldset;
                 }
-            }
 
-            // Bind now in case DOM is already ready
-            try { bindProviderButtons(); } catch (e) { /* ignore */ }
+                function renderEmptyState() {
+                    var editor = document.querySelector('#ProvidersEditor');
+                    if (editor.children.length) {
+                        return;
+                    }
 
-            // Also bind after DOMContentLoaded and after pageshow in case Jellyfin reuses the DOM
-            document.addEventListener('DOMContentLoaded', bindProviderButtons);
-            document.querySelector('#ProviderStuffConfigPage').addEventListener('pageshow', bindProviderButtons);
+                    var empty = document.createElement('p');
+                    empty.className = 'providerEmpty';
+                    empty.textContent = 'Nenhum provedor configurado.';
+                    editor.appendChild(empty);
+                }
+
+                function renderProviders(providers) {
+                    var editor = document.querySelector('#ProvidersEditor');
+                    editor.innerHTML = '';
+                    (providers || []).forEach(function (provider) {
+                        editor.appendChild(createProviderRow(provider));
+                    });
+                    renderEmptyState();
+                }
+
+                function addProvider() {
+                    var editor = document.querySelector('#ProvidersEditor');
+                    var empty = editor.querySelector('.providerEmpty');
+                    if (empty) {
+                        empty.remove();
+                    }
+
+                    var row = createProviderRow({
+                        Name: '',
+                        ProviderIds: [],
+                        ProviderLogoUrl: '',
+                        CollectionName: '',
+                        CollectionId: emptyGuid,
+                        CreateCollection: true
+                    });
+                    editor.appendChild(row);
+                    row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+                function refreshProviders() {
+                    var apiKey = document.querySelector('#TmdbApiKey').value.trim();
+                    var country = document.querySelector('#TmdbCountry').value.trim().toUpperCase() || 'BR';
+                    Dashboard.showLoadingMsg();
+                    setStatus('Atualizando a lista de provedores…');
+                    return fetchTmdbProviders(apiKey, country).then(function () {
+                        Array.prototype.forEach.call(
+                            document.querySelector('#ProvidersEditor').children,
+                            function (row) {
+                                if (typeof row.populateOptions === 'function') {
+                                    row.populateOptions();
+                                }
+                            });
+                        setStatus(tmdbProviders.length + ' provedores carregados do TMDB.');
+                    }).catch(function (error) {
+                        setStatus('Não foi possível atualizar o TMDB: ' + error.message);
+                        Dashboard.alert('Não foi possível atualizar o TMDB: ' + error.message);
+                    }).finally(function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                }
+
+                function loadConfiguration() {
+                    Dashboard.showLoadingMsg();
+                    setStatus('Carregando configurações…');
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        document.querySelector('#TmdbApiKey').value = config.TmdbApiKey || '';
+                        document.querySelector('#TmdbCountry').value = config.TmdbCountry || 'BR';
+                        document.querySelector('#EnableProviderCollections').checked =
+                            config.EnableProviderCollections !== false;
+                        renderProviders(config.Providers || []);
+                        setStatus('');
+
+                        if (config.TmdbApiKey) {
+                            refreshProviders();
+                        } else {
+                            Dashboard.hideLoadingMsg();
+                        }
+                    }).catch(function (error) {
+                        Dashboard.hideLoadingMsg();
+                        setStatus('Não foi possível carregar as configurações: ' + error.message);
+                    });
+                }
+
+                document.querySelector('#AddProviderBtn').addEventListener('click', addProvider);
+                document.querySelector('#RefreshTmdbBtn').addEventListener('click', refreshProviders);
+
+                document.querySelector('#ProviderStuffConfigForm').addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    setStatus('Salvando configurações…');
+
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        var country = document.querySelector('#TmdbCountry').value.trim().toUpperCase();
+                        var rows = Array.prototype.filter.call(
+                            document.querySelector('#ProvidersEditor').children,
+                            function (row) {
+                                return typeof row.getValues === 'function';
+                            });
+
+                        config.TmdbApiKey = document.querySelector('#TmdbApiKey').value.trim();
+                        config.TmdbCountry = country || 'BR';
+                        config.EnableProviderCollections =
+                            document.querySelector('#EnableProviderCollections').checked;
+                        config.Providers = rows.map(function (row) {
+                            return row.getValues();
+                        });
+
+                        return ApiClient.updatePluginConfiguration(pluginId, config);
+                    }).then(function (result) {
+                        setStatus('Configurações salvas. Alterações em coleções serão aplicadas na próxima execução da tarefa.');
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    }).catch(function (error) {
+                        Dashboard.hideLoadingMsg();
+                        setStatus('Não foi possível salvar: ' + error.message);
+                    });
+                });
+
+                document.querySelector('#ProviderStuffConfigPage').addEventListener('pageshow', loadConfiguration);
+            }());
         </script>
     </div>
 </body>

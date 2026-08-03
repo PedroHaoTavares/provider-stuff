@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Xml.Serialization;
 using Jellyfin.Plugin.ProviderStuff.Configuration;
 using Jellyfin.Plugin.ProviderStuff.ScheduledTasks;
 using MediaBrowser.Controller.Entities;
@@ -32,6 +33,54 @@ public class CompatibilityTests
     public void ProviderCollectionsAreEnabledByDefault()
     {
         Assert.True(new PluginConfiguration().EnableProviderCollections);
+    }
+
+    [Fact]
+    public void ConfigurationPageAppearsInDashboardMenu()
+    {
+        var plugin = (Plugin)RuntimeHelpers.GetUninitializedObject(typeof(Plugin));
+
+        var page = Assert.Single(plugin.GetPages());
+
+        Assert.True(page.EnableInMainMenu);
+    }
+
+    [Fact]
+    public void ConfigurationPageContainsAccessibleProviderControls()
+    {
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(
+            "Jellyfin.Plugin.ProviderStuff.Configuration.configPage.html");
+
+        Assert.NotNull(stream);
+        using var reader = new StreamReader(stream);
+        var configurationPage = reader.ReadToEnd();
+
+        Assert.Contains("createElement('fieldset')", configurationPage, StringComparison.Ordinal);
+        Assert.Contains("aria-live=\"polite\"", configurationPage, StringComparison.Ordinal);
+        Assert.Contains("Nome exibido da coleção", configurationPage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProviderCollectionIdentityPersistsInConfiguration()
+    {
+        var collectionId = Guid.NewGuid();
+        var provider = new Provider
+        {
+            Name = "Netflix",
+            CollectionName = "Minha Netflix",
+            CollectionId = collectionId,
+            UpdateCollectionImage = true
+        };
+        var serializer = new XmlSerializer(typeof(Provider));
+        using var writer = new StringWriter();
+        serializer.Serialize(writer, provider);
+        using var reader = new StringReader(writer.ToString());
+
+        var restored = Assert.IsType<Provider>(serializer.Deserialize(reader));
+
+        Assert.Equal(collectionId, restored.CollectionId);
+        Assert.Equal("Minha Netflix", restored.CollectionName);
+        Assert.True(restored.UpdateCollectionImage);
     }
 
     [Fact]

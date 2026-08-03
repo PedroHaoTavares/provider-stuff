@@ -115,50 +115,94 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
                 .ToArray()
             : Array.Empty<Provider>();
         var collectionsByProvider = new Dictionary<string, BoxSet>(StringComparer.OrdinalIgnoreCase);
+        var configurationChanged = false;
         if (providersNeedingCollections.Length > 0)
         {
             _logger.LogInformation("Preparing collections for {Count} providers", providersNeedingCollections.Length);
             foreach (var provider in providersNeedingCollections)
             {
-                var collectionName = provider.Name;
-                IReadOnlyList<BaseItem> collections = _libraryManager.GetItemList(new InternalItemsQuery
-                {
-                    IncludeItemTypes = new[] { BaseItemKind.BoxSet },
-                    Name = collectionName,
-                    Recursive = true
-                });
+                var collectionName = ProviderCollectionPlanner.GetCollectionName(provider);
+                var collection = provider.CollectionId == Guid.Empty
+                    ? null
+                    : _libraryManager.GetItemById(provider.CollectionId) as BoxSet;
 
-                if (collections.Count > 0 && collections[0] is BoxSet existing)
+                if (collection is null)
                 {
-                    collectionsByProvider[provider.Name] = existing;
-
-                    // Ensure the collection has a primary image if configured
-                    try
+                    IReadOnlyList<BaseItem> collections = _libraryManager.GetItemList(new InternalItemsQuery
                     {
-                        await EnsureCollectionImageAsync(existing, provider, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to ensure image for existing collection '{Collection}'", collectionName);
-                    }
+                        IncludeItemTypes = new[] { BaseItemKind.BoxSet },
+                        Name = collectionName,
+                        Recursive = true
+                    });
+                    collection = collections.Count > 0 ? collections[0] as BoxSet : null;
                 }
-                else
+
+                if (collection is null)
                 {
-                    var boxSet = await _collectionManager.CreateCollectionAsync(new CollectionCreationOptions { Name = collectionName }).ConfigureAwait(false);
-                    collectionsByProvider[provider.Name] = boxSet;
+                    collection = await _collectionManager.CreateCollectionAsync(
+                        new CollectionCreationOptions { Name = collectionName }).ConfigureAwait(false);
+                    collection.PremiereDate = DateTime.UtcNow;
+                    await _libraryManager.UpdateItemAsync(
+                        collection,
+                        collection,
+                        ItemUpdateType.MetadataEdit,
+                        cancellationToken).ConfigureAwait(false);
                     _logger.LogInformation("Created collection '{Collection}'", collectionName);
-                    boxSet.PremiereDate = DateTime.UtcNow;
-                    await _libraryManager.UpdateItemAsync(boxSet, boxSet, ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
-                    // Try to set image right after creation
-                    try
+                }
+
+                if (provider.CollectionId != collection.Id)
+                {
+                    provider.CollectionId = collection.Id;
+                    configurationChanged = true;
+                }
+
+                if (provider.UpdateCollectionName)
+                {
+                    if (!string.Equals(collection.Name, collectionName, StringComparison.Ordinal))
                     {
-                        await EnsureCollectionImageAsync(boxSet, provider, cancellationToken).ConfigureAwait(false);
+                        collection.Name = collectionName;
+                        await _libraryManager.UpdateItemAsync(
+                            collection,
+                            collection,
+                            ItemUpdateType.MetadataEdit,
+                            cancellationToken).ConfigureAwait(false);
+                        _logger.LogInformation("Renamed provider collection to '{Collection}'", collectionName);
                     }
-                    catch (Exception ex)
+
+                    provider.UpdateCollectionName = false;
+                    configurationChanged = true;
+                }
+                else if (!string.Equals(provider.CollectionName, collection.Name, StringComparison.Ordinal))
+                {
+                    // Adopt a name edited through Jellyfin instead of overwriting it.
+                    provider.CollectionName = collection.Name;
+                    configurationChanged = true;
+                }
+
+                try
+                {
+                    await EnsureCollectionImageAsync(
+                        collection,
+                        provider,
+                        provider.UpdateCollectionImage,
+                        cancellationToken).ConfigureAwait(false);
+                    if (provider.UpdateCollectionImage)
                     {
-                        _logger.LogError(ex, "Failed to set image for new collection '{Collection}'", collectionName);
+                        provider.UpdateCollectionImage = false;
+                        configurationChanged = true;
                     }
                 }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to update image for collection '{Collection}'", collection.Name);
+                }
+
+                collectionsByProvider[provider.Name] = collection;
+            }
+
+            if (configurationChanged && Plugin.Instance is not null)
+            {
+                Plugin.Instance.SaveConfiguration(cfg);
             }
         }
 
@@ -200,22 +244,25 @@ public class ApplyProviderTagsTask : IScheduledTask, IConfigurableScheduledTask
             cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task EnsureCollectionImageAsync(BoxSet collection, Provider provider, CancellationToken ct)
+    private async Task EnsureCollectionImageAsync(
+        BoxSet collection,
+        Provider provider,
+        bool replaceExisting,
+        CancellationToken ct)
     {
-        // Only proceed if a logo url is configured and the collection has no primary image yet
-        if (collection is null)
+        if (replaceExisting && collection.HasImage(ImageType.Primary, 0))
         {
-            return;
+            await collection.DeleteImageAsync(ImageType.Primary, 0).ConfigureAwait(false);
         }
 
-        if (string.IsNullOrWhiteSpace(provider?.ProviderLogoUrl))
+        if (string.IsNullOrWhiteSpace(provider.ProviderLogoUrl))
         {
             return;
         }
 
         if (collection.HasImage(ImageType.Primary, 0))
         {
-            return; // don't overwrite existing imagery
+            return;
         }
 
         var url = provider.ProviderLogoUrl.Trim();

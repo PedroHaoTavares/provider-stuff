@@ -1,4 +1,4 @@
-VERSION ?= 1.3.0.0
+VERSION ?= 1.3.1.0
 TARGET_ABI ?= 10.11.0.0
 GITHUB_REPO ?= PedroHaoTavares/provider-stuff
 ASSET := providerstuff-$(VERSION).zip

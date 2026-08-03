@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Jellyfin.Plugin.ProviderStuff.Configuration;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using Xunit;
@@ -8,6 +9,23 @@ namespace Jellyfin.Plugin.ProviderStuff.Tests;
 
 public class ProviderCollectionPlannerTests
 {
+    [Theory]
+    [InlineData("Netflix", "", "Netflix")]
+    [InlineData("Netflix", "  Minha Netflix  ", "Minha Netflix")]
+    public void CollectionNameCanDifferFromProviderTag(
+        string providerName,
+        string collectionName,
+        string expected)
+    {
+        var provider = new Provider
+        {
+            Name = providerName,
+            CollectionName = collectionName
+        };
+
+        Assert.Equal(expected, ProviderCollectionPlanner.GetCollectionName(provider));
+    }
+
     [Fact]
     public void ProviderCollectionIncludesTaggedMoviesAndSeriesButNotEpisodes()
     {
