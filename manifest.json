@@ -17,11 +17,11 @@
         "versions": [
             {
                 "version": "1.3.0.0",
-                "changelog": "- Cada provedor habilitado aparece como uma coleção nativa\n- Sincronização adiciona filmes e séries com a tag correspondente e remove membros obsoletos\n- Criação e sincronização de coleções podem ser desativadas globalmente\n",
+                "changelog": "- Compatibilidade com Jellyfin 10.11.x\n",
                 "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://github.com/PedroHaoTavares/provider-stuff/releases/download/1.3.0.0/providerstuff-1.3.0.0.zip",
-                "checksum": "686cba6336c1893153484fbfb3add4cf",
-                "timestamp": "2026-08-03T14:54:35Z"
+                "checksum": "a0e20576bafa8a949ad790d8de509938",
+                "timestamp": "2026-08-03T14:58:25Z"
             },
             {
                 "version": "1.2.1.0",
