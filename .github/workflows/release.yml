@@ -1,0 +1,139 @@
+name: Release ProviderStuff
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version in four-part format
+        required: true
+        default: 1.2.1.0
+        type: string
+      target_abi:
+        description: Minimum Jellyfin ABI
+        required: true
+        default: 10.11.0.0
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: providerstuff-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, catalog and release
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ inputs.version }}
+      TARGET_ABI: ${{ inputs.target_abi }}
+      ASSET_NAME: providerstuff-${{ inputs.version }}.zip
+
+    steps:
+      - name: Check out the selected branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must use four numeric parts, for example 1.2.1.0."
+            exit 1
+          fi
+          if [[ ! "$TARGET_ABI" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "targetAbi must use four numeric parts, for example 10.11.0.0."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists. Choose a new version."
+            exit 1
+          fi
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: >-
+          dotnet restore
+          Jellyfin.Plugin.ProviderStuff.Tests/Jellyfin.Plugin.ProviderStuff.Tests.csproj
+
+      - name: Test
+        run: >-
+          dotnet test Jellyfin.Plugin.ProviderStuff.Tests/Jellyfin.Plugin.ProviderStuff.Tests.csproj
+          --configuration Release
+          --no-restore
+          /p:Version="$VERSION"
+          /p:AssemblyVersion="$VERSION"
+          /p:FileVersion="$VERSION"
+
+      - name: Publish plugin
+        run: >-
+          dotnet publish Jellyfin.Plugin.ProviderStuff/Jellyfin.Plugin.ProviderStuff.csproj
+          --configuration Release
+          --no-restore
+          --output build/publish
+          /p:Version="$VERSION"
+          /p:AssemblyVersion="$VERSION"
+          /p:FileVersion="$VERSION"
+
+      - name: Create DLL-only archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build/publish/Jellyfin.Plugin.ProviderStuff.dll
+          mkdir -p release
+          (
+            cd build/publish
+            zip -9 "../../release/$ASSET_NAME" Jellyfin.Plugin.ProviderStuff.dll
+          )
+          mapfile -t entries < <(unzip -Z1 "release/$ASSET_NAME")
+          if [[ "${#entries[@]}" -ne 1 || "${entries[0]}" != "Jellyfin.Plugin.ProviderStuff.dll" ]]; then
+            echo "The release archive must contain only Jellyfin.Plugin.ProviderStuff.dll."
+            exit 1
+          fi
+
+      - name: Update Jellyfin manifest and calculate MD5
+        run: >-
+          python scripts/update_manifest.py
+          --manifest manifest.json
+          --archive "release/$ASSET_NAME"
+          --repository "$GITHUB_REPOSITORY"
+          --version "$VERSION"
+          --target-abi "$TARGET_ABI"
+
+      - name: Validate manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m json.tool manifest.json >/dev/null
+          grep -Eq '"checksum": "[0-9a-f]{32}"' manifest.json
+          grep -Fq "\"guid\": \"2be7759b-4e1b-4965-94ad-37d80c84b506\"" manifest.json
+
+      - name: Commit catalog and create tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "chore(release): ProviderStuff $VERSION"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git tag -a "$VERSION" -m "ProviderStuff $VERSION"
+          git push origin "$VERSION"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$VERSION" "release/$ASSET_NAME" \
+            --verify-tag \
+            --title "ProviderStuff $VERSION" \
+            --notes "ProviderStuff $VERSION para Jellyfin 10.11.x (targetAbi $TARGET_ABI). O ZIP contém somente Jellyfin.Plugin.ProviderStuff.dll."
